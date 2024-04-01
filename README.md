@@ -1,4 +1,4 @@
-**[V1 22/03/2024]** Here is the python code used in [ArXiv:2403.14580](https://arxiv.org/abs/2403.14580) to estimate the dipole and boost the mocks of the QSO eBOSS, LRG eBOSS, CMASS eBOSS, CMASS BOSS and LOWZ BOSS catalogs. 
+**[V1 01/04/2024]** Here is the python code used in [ArXiv:2403.14580](https://arxiv.org/abs/2403.14580) to estimate the dipole and boost the mocks of the QSO eBOSS, LRG eBOSS, CMASS eBOSS, CMASS BOSS and LOWZ BOSS catalogs. 
 
 
 ---
