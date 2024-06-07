@@ -9,7 +9,7 @@ z_dipole_estimator(z_array,z_hat,w_syst,n_bins,n_threads=your_number_of_threads)
 ```
 The NGC and SGC (or any other sources with different monopoles) should be arranged in different rows in the z_array, z_hat and w_syst arrays.  
 
-> z_array $\rightarrow$ is the observed redshifts' array for each object
+> z_array $\rightarrow$ is the observed 1+z array for each object
 >
 > z_hat $\rightarrow$ the array with the x, y and z components of the direction vector for each object
 >
