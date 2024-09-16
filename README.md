@@ -1,4 +1,4 @@
-**[V1 01/04/2024]** Here is the python code used in [ArXiv:2403.14580](https://arxiv.org/abs/2403.14580) to estimate the dipole and boost the mocks of the QSO eBOSS, LRG eBOSS, CMASS eBOSS, CMASS BOSS and LOWZ BOSS catalogs. 
+**[V1 01/04/2024]** Here is the python code used in [ArXiv:2403.14580](https://arxiv.org/abs/2403.14580) to estimate the dipole and boost the mocks of the QSO eBOSS, LRG eBOSS, CMASS eBOSS, CMASS BOSS and LOWZ BOSS catalogs. In this version we are using quantil binning as an example, as it is faster, but you easily can change it to any binning strategy by modifing the "quantil_binning_number_list_s" function (used in the "z_dipole_estimator" function).
 
 
 ---
