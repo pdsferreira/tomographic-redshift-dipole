@@ -5,14 +5,10 @@ from scipy.stats import norm
 import matplotlib.lines as mlines
 from matplotlib import pyplot as plt
 from astropy.io import fits as pyfits
-from ligo.skymap.tool.ligo_skymap_contour import main
-from ligo.skymap.postprocess.ellipse import find_ellipse
-from ligo.skymap.kde import BoundedKDE
 from astropy.io import fits
 from scipy.interpolate import interp1d
 import healpy as hp
 import numpy as np
-import json
 
 def doppler_boost(beta_var, beta_lat, beta_long, vecs, z):
 	'''
@@ -22,8 +18,8 @@ def doppler_boost(beta_var, beta_lat, beta_long, vecs, z):
 	vecs = unitary direction vectors for each object
 	z = z value for each object
 	'''
-	beta_vec = beta_var*hp.ang2vec(beta_long,beta_lat,lonlat=True).reshape(1,3)
-	dotprocut = 1/(1+np.einsum('j,ij', beta_vec, vecs)) # equivalent to 1/(1+np.sum(vecs*beta_vec,axis=1))
+	boostdirvec = np.repeat(hp.ang2vec(beta_long,beta_lat,lonlat=True).reshape(1,3),vecs.shape[0],axis=0)
+	dotprocut = 1/(1+np.sum(vecs*boostdirvec,axis=1)*beta_var)
 	gamma = np.sqrt(1-(beta_var*beta_var)) 
 	boostedvalues = gamma*dotprocut*z
 	return boostedvalues
@@ -38,7 +34,8 @@ def doppler_deboost(beta_vec, vecs, z):
 	dotprocut = (1+np.einsum('j,ij', beta_vec, vecs))/np.sqrt(1-(beta_var*beta_var)) # equivalent to (1+np.sum(vecs*beta_vec,axis=1))
 	boostedvalues = dotprocut*z
 	return boostedvalues 	
-		
+
+# Quantil binning is faster for tests, but you can choose any binning strategy.	
 def quantil_binning_number_list_s(catalog,n_bins):
 	'''
 	catalog = z distribution to be divided in bins
@@ -47,12 +44,12 @@ def quantil_binning_number_list_s(catalog,n_bins):
 	bins = np.quantile(catalog,q=np.linspace(0,1,n_bins+1))
 	bin_number_list = np.searchsorted(bins, catalog, side='left') # or np.digitize(z_array, bins, right=True)
 	return np.int16(bin_number_list) # As the number of bins is small, we can use int16 precision to speedup the np.argwhere function that will be used latter in the estimator. As long as your number of bins is smaller than 32767 will should not change this line.
-	
+		
 def z_dipole_estimator(z_array,z_hat,w_syst,n_bins,x_min=-0.0021,x_max=0.0021,y_min=-0.0021,y_max=0.0021,z_min=-0.0021,z_max=0.0021,iter1_step=0.00007,iter2_step=0.000035,iter3_step=0.00001133333,ns_2=4,ns_3=2,n_threads=1):
 	'''
 	This function can be used to estimate the dipole due to Doppler effect over the redshift distribution.
 	The estimator consider a gradient descending approach over a chi squared grid with 3 iterations.
-	For more details about the estimator check the paper at ArXiv XXXX.XXXX.
+	For more details about the estimator check the paper at ArXiv 2403.14580
 	
 	z_array = array of z values. The array can have multiple sources (e.g. QSO NGC and QSO SGC), each one in a different row of the array.
 	z_hat = unitary direction vectors for each object.
@@ -81,9 +78,9 @@ def z_dipole_estimator(z_array,z_hat,w_syst,n_bins,x_min=-0.0021,x_max=0.0021,y_
 				w_syst_bin = w_syst_s[filter_ar]
 				avg_value = np.average(values_deboosted[filter_ar],weights=w_syst_bin) # deboosted monopole of the bin
 				dipole_term = avg_value*gamma_times_dotprod_inv[filter_ar]
-				w_sqrd = w_syst_bin**2
-				diff = w_syst_bin*(z_array_s[filter_ar]-dipole_term) # squared difference
-				chi2_array[s_idx][idx] = np.inner(diff,diff)/np.sum(w_sqrd) # weighted chi squared
+				w_sqrt = np.sqrt(w_syst_bin)
+				diff = w_sqrt*(z_array_s[filter_ar]-dipole_term) # squared difference
+				chi2_array[s_idx][idx] = np.inner(diff,diff)/np.sum(w_syst_bin) # weighted mse
 		chi2 = np.sum(chi2_array) # sum of all chi squares, for all sources and bins
 		return chi2
 	# the next lines will run the temporary function "chi2_binned" over the grid of values for beta_x, beta_y and beta_z.
@@ -93,7 +90,5 @@ def z_dipole_estimator(z_array,z_hat,w_syst,n_bins,x_min=-0.0021,x_max=0.0021,y_
 	res = brute(chi2_binned, rranges, full_output=True, finish=None, workers=n_threads) # minimizing the squared difference
 	rranges = (slice(res[0][0]-(ns_3*iter2_step), res[0][0]+(ns_3*iter2_step), iter3_step), slice(res[0][1]-(ns_3*iter2_step), res[0][1]+(ns_3*iter2_step), iter3_step),slice(res[0][2]-(ns_3*iter2_step), res[0][2]+(ns_3*iter2_step), iter3_step)) # 3rd iteration
 	res = brute(chi2_binned, rranges, full_output=True, finish=None, workers=n_threads) # minimizing the squared difference
-	return res		
-	
-
-    
+	return res
+				
